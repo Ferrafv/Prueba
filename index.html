@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oído Musical</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #18181f;
+    --surface: #1e1e28;
+    --surface2: #252532;
+    --border: #2e2e3e;
+    --accent: #c8a96e;
+    --accent2: #e8c98e;
+    --accent3: #f0d8a8;
+    --green: #4caf82;
+    --red: #e05555;
+    --text: #f0ede8;
+    --text2: #a8a5a0;
+    --text3: #6a6760;
+    --shadow: rgba(0,0,0,0.6);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grain texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ─── SCREENS ─────────────────────────────────── */
+  .screen {
+    display: none;
+    min-height: 100vh;
+    padding: 24px 20px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+    animation: fadeIn 0.35s ease;
+  }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+
+  /* ─── MAIN MENU ────────────────────────────────── */
+  #screen-menu {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 0;
+    padding: 40px 20px;
+  }
+  #screen-menu.active { display: flex; }
+
+  .menu-logo {
+    margin-bottom: 12px;
+  }
+  .menu-logo svg {
+    width: 56px; height: 56px;
+    filter: drop-shadow(0 0 20px rgba(200,169,110,0.4));
+  }
+
+  .menu-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.4rem, 7vw, 4rem);
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: var(--text);
+    text-align: center;
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+  .menu-subtitle {
+    font-size: 0.9rem;
+    color: var(--text3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 52px;
+  }
+
+  .menu-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .menu-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 18px 32px;
+    border-radius: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.22s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .menu-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(200,169,110,0.08), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .menu-btn:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(200,169,110,0.15); }
+  .menu-btn:hover::before { opacity: 1; }
+  .menu-btn:active { transform: translateY(0); }
+  .menu-btn .btn-icon { font-size: 1.3rem; }
+  .menu-btn .btn-label { flex: 1; text-align: left; }
+
+  /* ─── TOPBAR ───────────────────────────────────── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .back-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.18s;
+    flex-shrink: 0;
+  }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .topbar-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* ─── MODE SELECT ──────────────────────────────── */
+  #screen-modes { display: none; }
+  #screen-modes.active { display: block; }
+  .mode-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .mode-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px 24px;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .mode-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(200,169,110,0.07), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .mode-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(200,169,110,0.12); }
+  .mode-card:hover::after { opacity: 1; }
+  .mode-card-icon { font-size: 2.2rem; margin-bottom: 14px; }
+  .mode-card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .mode-card-desc {
+    font-size: 0.85rem;
+    color: var(--text2);
+    line-height: 1.55;
+  }
+
+  /* ─── GAME SCREEN ──────────────────────────────── */
+  #screen-game { display: none; }
+  #screen-game.active { display: block; }
+
+  .game-inner { max-width: 700px; margin: 0 auto; }
+
+  .score-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .score-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 8px 18px;
+    font-size: 0.82rem;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .score-pill strong { color: var(--text); }
+
+  .listen-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 24px;
+    text-align: center;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .listen-area::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(200,169,110,0.06), transparent 70%);
+  }
+  .listen-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 20px;
+  }
+  .listen-icon {
+    font-size: 3.2rem;
+    margin-bottom: 16px;
+    filter: drop-shadow(0 0 16px rgba(200,169,110,0.4));
+    display: block;
+    animation: pulse-icon 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse-icon {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+  .playing-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--accent2);
+    font-style: italic;
+    margin-bottom: 20px;
+    min-height: 1.5em;
+  }
+
+  .repeat-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 10px 24px;
+    border-radius: 100px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+  }
+  .repeat-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Feedback overlay */
+  .feedback-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .feedback-overlay.show { opacity: 1; }
+  .feedback-bubble {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 8vw, 3.5rem);
+    font-weight: 900;
+    padding: 20px 40px;
+    border-radius: 24px;
+    animation: pop-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes pop-in {
+    from { transform: scale(0.6); }
+    to { transform: scale(1); }
+  }
+  .feedback-bubble.correct {
+    background: rgba(76,175,130,0.2);
+    border: 2px solid var(--green);
+    color: var(--green);
+  }
+  .feedback-bubble.wrong {
+    background: rgba(224,85,85,0.2);
+    border: 2px solid var(--red);
+    color: var(--red);
+  }
+
+  /* ─── BASIC NOTES BUTTONS ──────────────────────── */
+  .note-btns {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 480px) {
+    .note-btns { grid-template-columns: repeat(4, 1fr); }
+  }
+  .note-btn {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 16px 6px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.18s;
+    position: relative;
+    overflow: hidden;
+  }
+  .note-btn:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(200,169,110,0.2); }
+  .note-btn:active { transform: translateY(0) scale(0.97); }
+  .note-btn.correct-flash {
+    background: rgba(76,175,130,0.25);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .note-btn.wrong-flash {
+    background: rgba(224,85,85,0.2);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* ─── PIANO ────────────────────────────────────── */
+  .piano-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+  .piano {
+    display: flex;
+    position: relative;
+    height: 160px;
+    min-width: 560px;
+    margin: 0 auto;
+    width: fit-content;
+    user-select: none;
+    gap: 0;
+  }
+  .white-key {
+    position: relative;
+    width: 40px;
+    height: 160px;
+    background: linear-gradient(180deg, #f5f0e8 0%, #e8e0d0 100%);
+    border: 1px solid #a09080;
+    border-radius: 0 0 8px 8px;
+    cursor: pointer;
+    z-index: 1;
+    transition: background 0.12s;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.62rem;
+    color: #888;
+    font-weight: 500;
+    box-shadow: 1px 3px 8px rgba(0,0,0,0.4), inset 0 -2px 4px rgba(0,0,0,0.1);
+  }
+  .white-key:hover { background: linear-gradient(180deg, #fff8ee 0%, #f0e8d8 100%); }
+  .white-key:active, .white-key.pressed {
+    background: linear-gradient(180deg, #ffe8b0 0%, #f0d070 100%);
+    transform: scaleY(0.98);
+    transform-origin: top;
+  }
+  .white-key.correct-flash { background: linear-gradient(180deg, #a0ffcc 0%, #4caf82 100%) !important; }
+  .white-key.wrong-flash { background: linear-gradient(180deg, #ffaaaa 0%, #e05555 100%) !important; }
+
+  .black-key {
+    position: absolute;
+    width: 26px;
+    height: 100px;
+    background: linear-gradient(180deg, #2a2520 0%, #1a1510 100%);
+    border-radius: 0 0 6px 6px;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.12s;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.52rem;
+    color: #666;
+    font-weight: 500;
+    box-shadow: 2px 4px 10px rgba(0,0,0,0.7), inset 0 -2px 3px rgba(0,0,0,0.3);
+    top: 0;
+  }
+  .black-key:hover { background: linear-gradient(180deg, #3e3830 0%, #2a241e 100%); }
+  .black-key:active, .black-key.pressed {
+    background: linear-gradient(180deg, #c8a050 0%, #a07030 100%);
+    transform: scaleY(0.97);
+    transform-origin: top;
+  }
+  .black-key.correct-flash { background: linear-gradient(180deg, #4caf82 0%, #2a7d58 100%) !important; }
+  .black-key.wrong-flash { background: linear-gradient(180deg, #e05555 0%, #a02020 100%) !important; }
+
+  /* ─── FAMILIES MODE ────────────────────────────── */
+  /* reuses note-btns */
+
+  /* ─── STATS ────────────────────────────────────── */
+  #screen-stats { display: none; }
+  #screen-stats.active { display: block; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 18px;
+    text-align: center;
+  }
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    font-weight: 900;
+    color: var(--accent2);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-label {
+    font-size: 0.78rem;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .stats-section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--text2);
+    margin-bottom: 14px;
+    margin-top: 4px;
+  }
+
+  .best-mode-card {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 22px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .best-mode-icon { font-size: 2rem; }
+  .best-mode-info {}
+  .best-mode-name { font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 700; color: var(--accent2); }
+  .best-mode-sub { font-size: 0.82rem; color: var(--text3); margin-top: 2px; }
+
+  .per-mode-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+  }
+  .per-mode-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .per-mode-title {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--text);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .per-mode-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text2);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .per-mode-row:last-child { border-bottom: none; }
+  .per-mode-row span { color: var(--text); font-weight: 500; }
+
+  /* ─── CONFIG ───────────────────────────────────── */
+  #screen-config { display: none; }
+  #screen-config.active { display: block; }
+
+  .config-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px 24px;
+    margin-bottom: 16px;
+  }
+  .config-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .config-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .config-label {
+    flex: 1;
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+  .config-sublabel {
+    font-size: 0.78rem;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  /* Volume slider */
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 160px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(200,169,110,0.5);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    background: var(--accent);
+    border-radius: 50%;
+    border: none;
+  }
+  .vol-val {
+    font-size: 0.85rem;
+    color: var(--text2);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  .danger-btn {
+    background: transparent;
+    border: 1px solid var(--red);
+    color: var(--red);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    padding: 12px 24px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .danger-btn:hover { background: rgba(224,85,85,0.1); }
+
+  /* Confirm dialog */
+  .confirm-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .confirm-overlay.show { display: flex; }
+  .confirm-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 28px;
+    max-width: 360px;
+    width: 90%;
+    text-align: center;
+    animation: fadeIn 0.2s ease;
+  }
+  .confirm-box h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem;
+    margin-bottom: 10px;
+  }
+  .confirm-box p { font-size: 0.88rem; color: var(--text2); margin-bottom: 24px; }
+  .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+  .confirm-yes {
+    background: var(--red);
+    border: none;
+    color: white;
+    padding: 10px 28px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: 'DM Sans', sans-serif;
+    transition: opacity 0.18s;
+  }
+  .confirm-yes:hover { opacity: 0.85; }
+  .confirm-no {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 28px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.18s;
+  }
+  .confirm-no:hover { border-color: var(--text3); }
+
+  /* Accent line under title */
+  .accent-line {
+    width: 48px;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 2px;
+    margin: 6px auto 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── MAIN MENU ─────────────────────────────── -->
+<div id="screen-menu" class="screen active">
+  <div class="menu-logo">
+    <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="28" cy="28" r="27" stroke="#c8a96e" stroke-width="1.5" opacity="0.4"/>
+      <path d="M20 38V20l16 4v14" stroke="#c8a96e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="17" cy="38" r="4" fill="#c8a96e" opacity="0.9"/>
+      <circle cx="33" cy="34" r="4" fill="#c8a96e" opacity="0.9"/>
+    </svg>
+  </div>
+  <h1 class="menu-title">Oído<br>Musical</h1>
+  <p class="menu-subtitle">Entrena tu percepción</p>
+  <div class="menu-btns">
+    <button class="menu-btn" onclick="nav('modes')">
+      <span class="btn-icon">🎵</span>
+      <span class="btn-label">Jugar</span>
+      <span style="color:var(--text3);font-size:0.8rem">›</span>
+    </button>
+    <button class="menu-btn" onclick="nav('stats')">
+      <span class="btn-icon">📊</span>
+      <span class="btn-label">Estadísticas</span>
+      <span style="color:var(--text3);font-size:0.8rem">›</span>
+    </button>
+    <button class="menu-btn" onclick="nav('config')">
+      <span class="btn-icon">⚙️</span>
+      <span class="btn-label">Configuración</span>
+      <span style="color:var(--text3);font-size:0.8rem">›</span>
+    </button>
+  </div>
+</div>
+
+<!-- ─── MODE SELECT ────────────────────────────── -->
+<div id="screen-modes" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="nav('menu')">←</button>
+    <h2 class="topbar-title">Elige un modo</h2>
+  </div>
+  <div class="mode-cards">
+    <div class="mode-card" onclick="startGame('basic')">
+      <div class="mode-card-icon">🎼</div>
+      <div class="mode-card-title">Notas básicas</div>
+      <div class="mode-card-desc">Escucha una nota y selecciónala entre Do, Re, Mi, Fa, Sol, La, Si.</div>
+    </div>
+    <div class="mode-card" onclick="startGame('piano')">
+      <div class="mode-card-icon">🎹</div>
+      <div class="mode-card-title">Piano completo</div>
+      <div class="mode-card-desc">Identifica cualquier nota del piano tocando la tecla correcta en el teclado visual.</div>
+    </div>
+    <div class="mode-card" onclick="startGame('family')">
+      <div class="mode-card-icon">🎶</div>
+      <div class="mode-card-title">Familias</div>
+      <div class="mode-card-desc">Escucha notas en distintas octavas y reconoce a qué familia pertenecen.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── GAME SCREEN ────────────────────────────── -->
+<div id="screen-game" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="nav('modes')">←</button>
+    <h2 class="topbar-title" id="game-title">Notas básicas</h2>
+  </div>
+  <div class="game-inner">
+    <div class="score-row" id="score-row">
+      <div class="score-pill">🎵 <strong id="sc-total">0</strong> notas</div>
+      <div class="score-pill" style="color:var(--green)">✓ <strong id="sc-hits">0</strong> aciertos</div>
+      <div class="score-pill" style="color:var(--red)">✗ <strong id="sc-miss">0</strong> fallos</div>
+      <div class="score-pill">🎯 <strong id="sc-pct">—</strong></div>
+    </div>
+
+    <div class="listen-area" id="listen-area">
+      <div class="listen-label">Escucha la nota</div>
+      <span class="listen-icon" id="listen-icon">🎵</span>
+      <div class="playing-text" id="playing-text">Reproduciendo…</div>
+      <button class="repeat-btn" id="repeat-btn" onclick="repeatNote()">↺ Escuchar de nuevo</button>
+    </div>
+
+    <!-- Basic + Family buttons -->
+    <div class="note-btns" id="basic-btns" style="display:none"></div>
+
+    <!-- Piano -->
+    <div id="piano-container" style="display:none">
+      <div class="piano-wrap">
+        <div class="piano" id="piano-keys"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── STATS ─────────────────────────────────── -->
+<div id="screen-stats" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="nav('menu')">←</button>
+    <h2 class="topbar-title">Estadísticas</h2>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value" id="st-total">0</div>
+      <div class="stat-label">Notas escuchadas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="st-hits" style="color:var(--green)">0</div>
+      <div class="stat-label">Aciertos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="st-miss" style="color:var(--red)">0</div>
+      <div class="stat-label">Fallos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="st-pct">—</div>
+      <div class="stat-label">Precisión</div>
+    </div>
+  </div>
+
+  <div class="stats-section-title">Mejor modo</div>
+  <div class="best-mode-card" id="best-mode-card">
+    <div class="best-mode-icon" id="best-mode-icon">🏆</div>
+    <div class="best-mode-info">
+      <div class="best-mode-name" id="best-mode-name">Sin datos</div>
+      <div class="best-mode-sub" id="best-mode-sub">Juega para ver estadísticas</div>
+    </div>
+  </div>
+
+  <div class="stats-section-title">Por modo</div>
+  <div class="per-mode-grid" id="per-mode-grid"></div>
+</div>
+
+<!-- ─── CONFIG ────────────────────────────────── -->
+<div id="screen-config" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="nav('menu')">←</button>
+    <h2 class="topbar-title">Configuración</h2>
+  </div>
+  <div class="config-card">
+    <div class="config-item">
+      <div>
+        <div class="config-label">Volumen</div>
+        <div class="config-sublabel">Nivel del sonido del piano</div>
+      </div>
+      <input type="range" id="vol-slider" min="0" max="100" value="80" oninput="setVolume(this.value)">
+      <div class="vol-val" id="vol-val">80%</div>
+    </div>
+    <div class="config-item">
+      <div>
+        <div class="config-label">Reiniciar estadísticas</div>
+        <div class="config-sublabel">Borra todos los datos guardados</div>
+      </div>
+      <button class="danger-btn" onclick="confirmReset()">Reiniciar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── FEEDBACK ──────────────────────────────── -->
+<div class="feedback-overlay" id="feedback-overlay">
+  <div class="feedback-bubble" id="feedback-bubble"></div>
+</div>
+
+<!-- ─── CONFIRM DIALOG ────────────────────────── -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <h3>¿Reiniciar todo?</h3>
+    <p>Se eliminarán todas las estadísticas guardadas. Esta acción no se puede deshacer.</p>
+    <div class="confirm-actions">
+      <button class="confirm-yes" onclick="doReset()">Sí, borrar</button>
+      <button class="confirm-no" onclick="cancelReset()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── AUDIO ENGINE ──────────────────────────────────────────────
+// Piano synthesis using Web Audio API - realistic piano timbre
+
+let audioCtx = null;
+let masterGain = null;
+let volume = 0.8;
+
+function getAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = volume;
+    masterGain.connect(audioCtx.destination);
+  }
+  return audioCtx;
+}
+
+// Realistic piano note using additive synthesis + envelope
+function playPianoNote(freq, duration = 1.8) {
+  const ctx = getAudio();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const now = ctx.currentTime;
+  const gain = ctx.createGain();
+  gain.connect(masterGain);
+
+  // Multiple harmonics for piano timbre
+  const harmonics = [
+    { ratio: 1,    amp: 0.5  },
+    { ratio: 2,    amp: 0.22 },
+    { ratio: 3,    amp: 0.12 },
+    { ratio: 4,    amp: 0.06 },
+    { ratio: 5,    amp: 0.03 },
+    { ratio: 6,    amp: 0.015},
+    { ratio: 7,    amp: 0.008},
+  ];
+
+  const oscs = harmonics.map(h => {
+    const osc = ctx.createOscillator();
+    const hGain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq * h.ratio;
+
+    // Slight inharmonicity (piano-like)
+    if (h.ratio > 1) {
+      osc.frequency.value = freq * h.ratio * (1 + 0.0004 * h.ratio * h.ratio);
+    }
+
+    hGain.gain.value = h.amp;
+    osc.connect(hGain);
+    hGain.connect(gain);
+    osc.start(now);
+    osc.stop(now + duration + 0.3);
+    return osc;
+  });
+
+  // Piano envelope: sharp attack, quick decay, moderate sustain, release
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(1, now + 0.004);      // attack
+  gain.gain.exponentialRampToValueAtTime(0.45, now + 0.08); // decay
+  gain.gain.setValueAtTime(0.45, now + 0.08);
+  gain.gain.exponentialRampToValueAtTime(0.18, now + 0.3); // sustain slope
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration + 0.3); // release
+
+  // Add subtle noise attack for percussiveness
+  const noise = ctx.createOscillator();
+  const nGain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.value = freq * 2;
+  noise.type = 'sawtooth';
+  noise.frequency.value = freq * 3.1;
+  nGain.gain.setValueAtTime(0.08, now);
+  nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+  noise.connect(filter);
+  filter.connect(nGain);
+  nGain.connect(gain);
+  noise.start(now);
+  noise.stop(now + 0.04);
+}
+
+// ─── NOTES DEFINITIONS ─────────────────────────────────────────
+
+const NOTE_NAMES_ES = ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Si'];
+const BASIC_NOTES = ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Si'];
+
+// Full piano: C2 to C7 (we'll do C3 to C6 for practical range, 4 octaves)
+// Format: { name, family, octave, freq }
+function buildPianoNotes() {
+  const notes = [];
+  // C=0,D=2,E=4,F=5,G=7,A=9,B=11 semitones from C
+  const diatonicNames = ['Do','Re','Mi','Fa','Sol','La','Si'];
+  const allNotes = [
+    {name:'Do',  hasBlack:true,  blackName:'Do#'},
+    {name:'Re',  hasBlack:true,  blackName:'Re#'},
+    {name:'Mi',  hasBlack:false },
+    {name:'Fa',  hasBlack:true,  blackName:'Fa#'},
+    {name:'Sol', hasBlack:true,  blackName:'Sol#'},
+    {name:'La',  hasBlack:true,  blackName:'La#'},
+    {name:'Si',  hasBlack:false },
+  ];
+
+  // Frequency of A4 = 440Hz. C4 = 261.63Hz
+  // MIDI note 60 = C4
+  function midiToFreq(midi) {
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+  // Build octaves 3, 4, 5 (white + black), plus C6 white
+  const octaves = [3, 4, 5];
+  // MIDI of C3 = 48, C4=60, C5=72, C6=84
+
+  octaves.forEach(oct => {
+    const base = 48 + (oct - 3) * 12; // MIDI of C in this octave
+    const semis = [0, 2, 4, 5, 7, 9, 11];
+    diatonicNames.forEach((name, i) => {
+      notes.push({
+        id: `${name}${oct}`,
+        name: name,
+        family: name,
+        octave: oct,
+        freq: midiToFreq(base + semis[i]),
+        type: 'white'
+      });
+      if (allNotes[i].hasBlack) {
+        notes.push({
+          id: `${allNotes[i].blackName}${oct}`,
+          name: allNotes[i].blackName,
+          family: name,
+          octave: oct,
+          freq: midiToFreq(base + semis[i] + 1),
+          type: 'black'
+        });
+      }
+    });
+  });
+
+  // Add C6
+  notes.push({
+    id: 'Do6',
+    name: 'Do',
+    family: 'Do',
+    octave: 6,
+    freq: midiToFreq(84),
+    type: 'white'
+  });
+
+  return notes;
+}
+
+const ALL_PIANO_NOTES = buildPianoNotes();
+const WHITE_NOTES = ALL_PIANO_NOTES.filter(n => n.type === 'white');
+const ALL_NOTES_MAP = {};
+ALL_PIANO_NOTES.forEach(n => ALL_NOTES_MAP[n.id] = n);
+
+// Basic notes frequencies (octave 4)
+const BASIC_FREQ = {
+  'Do': 261.63, 'Re': 293.66, 'Mi': 329.63,
+  'Fa': 349.23, 'Sol': 392.00, 'La': 440.00, 'Si': 493.88
+};
+
+// ─── STATE ─────────────────────────────────────────────────────
+
+let currentMode = null; // 'basic' | 'piano' | 'family'
+let currentNote = null; // note object or {name, freq} for basic/family
+let sessionHits = 0, sessionMiss = 0, sessionTotal = 0;
+let answering = false;
+
+// Stats persisted in localStorage
+function defaultStats() {
+  return {
+    total: 0, hits: 0, miss: 0,
+    byMode: {
+      basic:  { total: 0, hits: 0, miss: 0 },
+      piano:  { total: 0, hits: 0, miss: 0 },
+      family: { total: 0, hits: 0, miss: 0 },
+    }
+  };
+}
+
+function loadStats() {
+  try {
+    const s = localStorage.getItem('oido_stats');
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return defaultStats();
+}
+
+function saveStats(st) {
+  localStorage.setItem('oido_stats', JSON.stringify(st));
+}
+
+// ─── NAVIGATION ────────────────────────────────────────────────
+
+function nav(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  if (screen === 'stats') renderStats();
+  if (screen === 'config') loadConfig();
+}
+
+// ─── GAME LOGIC ─────────────────────────────────────────────────
+
+function startGame(mode) {
+  currentMode = mode;
+  sessionHits = 0; sessionMiss = 0; sessionTotal = 0;
+  answering = false;
+  updateScoreRow();
+
+  const titles = { basic: 'Notas básicas', piano: 'Piano completo', family: 'Familias' };
+  document.getElementById('game-title').textContent = titles[mode];
+
+  // Show/hide UI
+  document.getElementById('basic-btns').style.display = (mode !== 'piano') ? 'grid' : 'none';
+  document.getElementById('piano-container').style.display = (mode === 'piano') ? 'block' : 'none';
+
+  if (mode !== 'piano') buildBasicBtns(mode);
+  if (mode === 'piano') buildPiano();
+
+  nav('game');
+  nextNote();
+}
+
+function nextNote() {
+  answering = false;
+  if (currentMode === 'basic') {
+    const name = BASIC_NOTES[Math.floor(Math.random() * 7)];
+    currentNote = { id: name, name: name, family: name, freq: BASIC_FREQ[name] };
+  } else if (currentMode === 'piano') {
+    const note = ALL_PIANO_NOTES[Math.floor(Math.random() * ALL_PIANO_NOTES.length)];
+    currentNote = note;
+  } else if (currentMode === 'family') {
+    // Random note from full range but user picks family
+    const note = ALL_PIANO_NOTES[Math.floor(Math.random() * ALL_PIANO_NOTES.length)];
+    currentNote = note;
+  }
+  document.getElementById('playing-text').textContent = 'Escucha la nota…';
+  document.getElementById('listen-icon').textContent = '🎵';
+  setTimeout(() => playNote(), 120);
+}
+
+function playNote() {
+  if (!currentNote) return;
+  document.getElementById('playing-text').textContent = 'Reproduciendo…';
+  document.getElementById('listen-icon').textContent = '🎵';
+  document.getElementById('listen-icon').style.animation = 'pulse-icon 0.8s ease-in-out 3';
+  playPianoNote(currentNote.freq);
+  setTimeout(() => {
+    document.getElementById('listen-icon').style.animation = 'pulse-icon 2.5s ease-in-out infinite';
+    document.getElementById('playing-text').textContent = '¿Qué nota es esta?';
+  }, 900);
+}
+
+function repeatNote() {
+  if (currentNote) playNote();
+}
+
+function checkAnswer(answered, btnEl) {
+  if (answering) return;
+  answering = true;
+  sessionTotal++;
+
+  let correct = false;
+  if (currentMode === 'basic') {
+    correct = (answered === currentNote.name);
+  } else if (currentMode === 'piano') {
+    correct = (answered === currentNote.id);
+  } else if (currentMode === 'family') {
+    correct = (answered === currentNote.family);
+  }
+
+  if (correct) { sessionHits++; } else { sessionMiss++; }
+  updateScoreRow();
+
+  // Save stats
+  const st = loadStats();
+  st.total++; if (correct) st.hits++; else st.miss++;
+  st.byMode[currentMode].total++;
+  if (correct) st.byMode[currentMode].hits++; else st.byMode[currentMode].miss++;
+  saveStats(st);
+
+  // Flash button
+  if (btnEl) {
+    btnEl.classList.add(correct ? 'correct-flash' : 'wrong-flash');
+    setTimeout(() => btnEl.classList.remove('correct-flash', 'wrong-flash'), 500);
+  }
+
+  // Show feedback
+  showFeedback(correct);
+
+  // Play the correct note if wrong
+  if (!correct) {
+    playPianoNote(currentNote.freq);
+  }
+
+  // Next note after delay
+  setTimeout(() => {
+    nextNote();
+  }, 900);
+}
+
+function showFeedback(correct) {
+  const ov = document.getElementById('feedback-overlay');
+  const bub = document.getElementById('feedback-bubble');
+  bub.className = 'feedback-bubble ' + (correct ? 'correct' : 'wrong');
+  bub.textContent = correct ? '✓ ¡Correcto!' : '✗ Incorrecto';
+  ov.classList.add('show');
+  setTimeout(() => ov.classList.remove('show'), 700);
+}
+
+function updateScoreRow() {
+  document.getElementById('sc-total').textContent = sessionTotal;
+  document.getElementById('sc-hits').textContent = sessionHits;
+  document.getElementById('sc-miss').textContent = sessionMiss;
+  const pct = sessionTotal > 0 ? Math.round(sessionHits / sessionTotal * 100) + '%' : '—';
+  document.getElementById('sc-pct').textContent = pct;
+}
+
+// ─── BASIC / FAMILY BUTTONS ─────────────────────────────────────
+
+function buildBasicBtns(mode) {
+  const cont = document.getElementById('basic-btns');
+  cont.innerHTML = '';
+  BASIC_NOTES.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'note-btn';
+    btn.textContent = name;
+    btn.addEventListener('click', () => checkAnswer(name, btn));
+    cont.appendChild(btn);
+  });
+}
+
+// ─── PIANO ──────────────────────────────────────────────────────
+
+function buildPiano() {
+  const container = document.getElementById('piano-keys');
+  container.innerHTML = '';
+
+  // Build piano octaves 3-5 + C6
+  // We track white key positions
+  let whiteIdx = 0;
+  const WHITE_W = 40; // px per white key
+
+  // Groups: for each octave, white keys with black keys positioned relatively
+  const octaves = [3, 4, 5];
+  const diatonic = ['Do','Re','Mi','Fa','Sol','La','Si'];
+  const semis    = [0, 2, 4, 5, 7, 9, 11];
+  const hasBlack = [true, true, false, true, true, true, false];
+  // Black key offset from left edge of white key group (in px)
+  const blackOffsets = [26, 26+40, null, 26+40*3, 26+40*4, 26+40*5, null];
+
+  octaves.forEach(oct => {
+    diatonic.forEach((name, i) => {
+      // White key
+      const wk = document.createElement('div');
+      wk.className = 'white-key';
+      wk.dataset.id = `${name}${oct}`;
+      wk.innerHTML = `<span>${name}<sub>${oct}</sub></span>`;
+      wk.addEventListener('click', () => checkAnswer(`${name}${oct}`, wk));
+      container.appendChild(wk);
+
+      // Black key (positioned absolutely relative to white key)
+      if (hasBlack[i]) {
+        const bname = diatonic[i] === 'Do' ? 'Do#' :
+                      diatonic[i] === 'Re' ? 'Re#' :
+                      diatonic[i] === 'Fa' ? 'Fa#' :
+                      diatonic[i] === 'Sol'? 'Sol#': 'La#';
+        const bk = document.createElement('div');
+        bk.className = 'black-key';
+        bk.dataset.id = `${bname}${oct}`;
+        const leftPos = whiteIdx * WHITE_W + WHITE_W - 13; // center on right of white key
+        bk.style.left = leftPos + 'px';
+        bk.innerHTML = `<span style="font-size:0.48rem">${bname}<sub>${oct}</sub></span>`;
+        bk.addEventListener('click', () => checkAnswer(`${bname}${oct}`, bk));
+        container.appendChild(bk);
+      }
+      whiteIdx++;
+    });
+  });
+
+  // C6
+  const wk = document.createElement('div');
+  wk.className = 'white-key';
+  wk.dataset.id = 'Do6';
+  wk.innerHTML = `<span>Do<sub>6</sub></span>`;
+  wk.addEventListener('click', () => checkAnswer('Do6', wk));
+  container.appendChild(wk);
+
+  // Set piano total width
+  container.style.width = (whiteIdx + 1) * WHITE_W + 'px';
+}
+
+// ─── STATS ──────────────────────────────────────────────────────
+
+function renderStats() {
+  const st = loadStats();
+
+  document.getElementById('st-total').textContent = st.total;
+  document.getElementById('st-hits').textContent = st.hits;
+  document.getElementById('st-miss').textContent = st.miss;
+  const pct = st.total > 0 ? Math.round(st.hits / st.total * 100) + '%' : '—';
+  document.getElementById('st-pct').textContent = pct;
+
+  // Best mode
+  const modeLabels = { basic: 'Notas básicas', piano: 'Piano completo', family: 'Familias' };
+  const modeIcons = { basic: '🎼', piano: '🎹', family: '🎶' };
+  let bestMode = null, bestPct = -1;
+  Object.entries(st.byMode).forEach(([k, v]) => {
+    if (v.total > 0) {
+      const p = v.hits / v.total;
+      if (p > bestPct) { bestPct = p; bestMode = k; }
+    }
+  });
+  if (bestMode) {
+    document.getElementById('best-mode-icon').textContent = modeIcons[bestMode];
+    document.getElementById('best-mode-name').textContent = modeLabels[bestMode];
+    document.getElementById('best-mode-sub').textContent =
+      `${Math.round(bestPct * 100)}% de precisión · ${st.byMode[bestMode].total} notas`;
+  } else {
+    document.getElementById('best-mode-icon').textContent = '🏆';
+    document.getElementById('best-mode-name').textContent = 'Sin datos aún';
+    document.getElementById('best-mode-sub').textContent = 'Juega para ver estadísticas';
+  }
+
+  // Per mode
+  const grid = document.getElementById('per-mode-grid');
+  grid.innerHTML = '';
+  Object.entries(st.byMode).forEach(([k, v]) => {
+    const card = document.createElement('div');
+    card.className = 'per-mode-card';
+    const p = v.total > 0 ? Math.round(v.hits / v.total * 100) + '%' : '—';
+    card.innerHTML = `
+      <div class="per-mode-title">${modeIcons[k]} ${modeLabels[k]}</div>
+      <div class="per-mode-row">Notas jugadas <span>${v.total}</span></div>
+      <div class="per-mode-row">Aciertos <span style="color:var(--green)">${v.hits}</span></div>
+      <div class="per-mode-row">Fallos <span style="color:var(--red)">${v.miss}</span></div>
+      <div class="per-mode-row">Precisión <span>${p}</span></div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ─── CONFIG ──────────────────────────────────────────────────────
+
+function loadConfig() {
+  const v = parseInt(localStorage.getItem('oido_vol') || '80');
+  document.getElementById('vol-slider').value = v;
+  document.getElementById('vol-val').textContent = v + '%';
+  volume = v / 100;
+  if (masterGain) masterGain.gain.value = volume;
+}
+
+function setVolume(v) {
+  document.getElementById('vol-val').textContent = v + '%';
+  volume = v / 100;
+  if (masterGain) masterGain.gain.value = volume;
+  localStorage.setItem('oido_vol', v);
+}
+
+function confirmReset() {
+  document.getElementById('confirm-overlay').classList.add('show');
+}
+function cancelReset() {
+  document.getElementById('confirm-overlay').classList.remove('show');
+}
+function doReset() {
+  localStorage.removeItem('oido_stats');
+  document.getElementById('confirm-overlay').classList.remove('show');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+
+(function init() {
+  const v = parseInt(localStorage.getItem('oido_vol') || '80');
+  volume = v / 100;
+
+  // Resume AudioContext on first user interaction
+  document.addEventListener('click', () => {
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }, { once: true });
+})();
+</script>
+</body>
+</html>

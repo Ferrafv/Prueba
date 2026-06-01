@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Puesto de comida aleatorio</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    text-align:center;
+    margin:0;
+}
+
+h1{
+    margin:15px;
+}
+
+#map{
+    height:500px;
+    width:100%;
+}
+
+button{
+    padding:12px 20px;
+    font-size:18px;
+    cursor:pointer;
+    margin:15px;
+}
+
+#info{
+    margin-bottom:15px;
+    font-size:18px;
+}
+</style>
+</head>
+<body>
+
+<h1>Puesto de comida aleatorio del mundo</h1>
+
+<button onclick="mostrarLugar()">
+Encontrar puesto de comida
+</button>
+
+<div id="info">Pulsa el botón para descubrir uno.</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+const lugares = [
+{
+nombre: "Puesto de tacos - Ciudad de México, México",
+lat: 19.4326,
+lng: -99.1332
+},
+{
+nombre: "Puesto de hot dogs - Nueva York, EE.UU.",
+lat: 40.7580,
+lng: -73.9855
+},
+{
+nombre: "Puesto de satay - Yakarta, Indonesia",
+lat: -6.2088,
+lng: 106.8456
+},
+{
+nombre: "Puesto de curry - Bangkok, Tailandia",
+lat: 13.7563,
+lng: 100.5018
+},
+{
+nombre: "Puesto de kebab - Estambul, Turquía",
+lat: 41.0082,
+lng: 28.9784
+},
+{
+nombre: "Puesto de arepas - Bogotá, Colombia",
+lat: 4.7110,
+lng: -74.0721
+},
+{
+nombre: "Puesto de ramen - Tokio, Japón",
+lat: 35.6762,
+lng: 139.6503
+}
+];
+
+const map = L.map('map').setView([20,0], 2);
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+maxZoom: 19
+}).addTo(map);
+
+let marker;
+
+function mostrarLugar() {
+
+const lugar =
+lugares[Math.floor(Math.random() * lugares.length)];
+
+if(marker){
+map.removeLayer(marker);
+}
+
+marker = L.marker([lugar.lat, lugar.lng])
+.addTo(map)
+.bindPopup(lugar.nombre)
+.openPopup();
+
+map.setView([lugar.lat, lugar.lng], 12);
+
+document.getElementById("info").innerHTML =
+"🍔 " + lugar.nombre;
+}
+</script>
+
+</body>
+</html>
